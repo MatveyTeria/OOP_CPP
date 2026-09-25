@@ -24,7 +24,7 @@
       {
           "label": "make clean",
           "type": "shell",
-          "command": "make",
+          "command": "C:\\msys64\\usr\\bin\\make.exe",
           "args": [
               "clean"
           ],
@@ -33,7 +33,7 @@
       {
           "label": "make all",
           "type": "shell",
-          "command": "make",
+          "command": "C:\\msys64\\usr\\bin\\make.exe",
           "args": [
               "all"
           ],
@@ -42,6 +42,6 @@
           },
           "problemMatcher": ["$gcc"]
       }
-    ]
+    ],
     "version": "2.0.0"
 }

@@ -26,6 +26,7 @@ class Generator
         virtual void printRecord(const Record& record);
         void printPage(std::size_t start_idx, int records_on_page);
         void generate();
+        virtual ~Generator();
 };
 
 class ConsoleGenerator: Generator
