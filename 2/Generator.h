@@ -19,14 +19,28 @@ class ReportData
 
 class Generator
 {
-    virtual void printHeader(std::size_t pageNumber, std::size_t totalPages) = 0;
-    virtual void printFooter(std::size_t pageNumber, std::size_t totalPages) = 0;
-    virtual void printSeparator() = 0;
     public:
+        void generate(const ReportData& data);
+        virtual ~Generator() = default;
+
+        Generator(const Generator&) = delete;
+        Generator& operator=(const Generator&) = delete;
+        Generator(Generator&&) = delete;
+        Generator& operator=(Generator&&) = delete;
+    protected:
+        Generator() = default;
         virtual void printRecord(const Record& record);
-        void printPage(std::size_t start_idx, int records_on_page);
-        void generate();
-        virtual ~Generator();
+        virtual void printHeader(std::size_t pageNumber, std::size_t totalPages) = 0;
+        virtual void printFooter(std::size_t pageNumber, std::size_t totalPages) = 0;
+        virtual void printSeparator() = 0;
+    private:
+        void printPage(const std::vector<Record>& records,
+                   std::size_t startIdx,
+                   std::size_t count,
+                   std::size_t pageNumber,
+                   std::size_t totalPages);
+    
+    
 };
 
 class ConsoleGenerator: Generator

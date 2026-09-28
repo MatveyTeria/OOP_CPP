@@ -1,20 +1,5 @@
-class Generator
-{
-    public:
-    virtual 
-}
+#include "Generator.h"
 
-class ConsoleGenerator: Generator
-{
-    public:
-}
-
-class TextGenerator: Generator
-{
-    public:
-}
-
-class HtmlGenerator: Generator
-{
-    public:
+Generator::generate(const ReportData& data) {
+    
 }
