@@ -1,6 +1,6 @@
 #include "Generator.h"
 
-void Generator::printPage(std::size_t start_idx, int records_on_page){
-    printHeader();
-    printFooter();
+
+ConsoleGenerator::printRecord(const Record& record) {
+    m_out << record.key << " : " << record.value;
 }
