@@ -1,0 +1,4 @@
+reserved_tickets : 500
+sold_tickets : 300
+returned_tickets : 10
+best_cashier : Kate

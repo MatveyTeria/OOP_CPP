@@ -1,13 +1,12 @@
-#include <iostream>
-#include <regex>
-#include <string>
+#include "Generator.h"
 
 int main() {
-    std::regex self_regex("a");
-    std::string s = "abebe@gmail.com";
-    if (std::regex_match(s, self_regex))
-        std::cout << "YES";
-    else
-        std::cout << "NO";
-    return 0;
+    ReportData data;
+    data.loadFromFile("input.txt");
+    ConsoleGenerator cg;
+    TextGenerator tg;
+    HtmlGenerator hg;
+    cg.generate(data);
+    tg.generate(data);
+    hg.generate(data);
 }
