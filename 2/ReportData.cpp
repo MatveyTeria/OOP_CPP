@@ -7,7 +7,7 @@ std::string strip(const std::string& s){
     auto first = s.begin();
     auto last = s.end();
     while (first != last && std::isspace(*first)) ++first;
-    while (last != first && std::isspace(*(last - 1))) ++last;
+    while (last != first && std::isspace(*(last - 1))) --last;
     return std::string(first, last);
 }
 
@@ -32,10 +32,10 @@ void ReportData::loadFromFile(std::string filename){
         throw std::runtime_error("Cannot open file: " + filename);
     }
 
-    _records.clear();
+    records_.clear();
     std::string line;
     while (std::getline(in, line)) {
         if (line.empty()) continue;
-        _records.push_back(parseLine(line));
+        records_.push_back(parseLine(line));
     }
 }

@@ -1,0 +1,175 @@
+==== Page 1 out of 5 ====
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+==== Page 1 out of 5 ====
+==== Page 2 out of 5 ====
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+==== Page 2 out of 5 ====
+==== Page 3 out of 5 ====
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+==== Page 3 out of 5 ====
+==== Page 4 out of 5 ====
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+-------
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+==== Page 4 out of 5 ====
+==== Page 5 out of 5 ====
+RESERVED_TICKETS : 500
+-------
+SOLD_TICKETS : 300
+-------
+RETURNED_TICKETS : 10
+-------
+BEST_CASHIER : kate
+-------
+TICKET_PRICE : 10
+==== Page 5 out of 5 ====
