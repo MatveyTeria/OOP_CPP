@@ -1,5 +1,10 @@
+#include <cstdint>
+
+using std::size_t
+
 class String {
 private:
+    struct StringData;
     void detach();
 public:
     String();

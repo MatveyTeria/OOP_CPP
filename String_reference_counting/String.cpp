@@ -3,6 +3,7 @@
 void String::detach() {
     
 }
+{
 public:
     String();
     String(const char* str);
