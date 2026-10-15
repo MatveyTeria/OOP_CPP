@@ -1,0 +1,5 @@
+cat.bmp
+30 50
+50 30
+100 0 10
+cat_line.bmp
