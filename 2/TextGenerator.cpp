@@ -1,4 +1,4 @@
-#include "Generator.h"
+#include "TextGenerator.h"
 
 namespace {
     std::string lower(const std::string &s) {

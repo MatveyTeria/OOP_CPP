@@ -1,4 +1,4 @@
-#include "Generator.h"
+#include "HtmlGenerator.h"
 
 HtmlGenerator::HtmlGenerator(const std::string& filename)
     : m_out(filename)
