@@ -19,9 +19,17 @@ std::optional<Path> DijkstraSolver::findShortestPath(const std::string& from, co
     std::priority_queue<
         QueueItem, std::vector<QueueItem>,
         std::greater<>> pr_queue;
+
+    unordered_map
     
     pr_queue.push(QueueItem{0, from});
-    
+    while (!pr_queue.empty()) {
+        QueueItem closest = pr_queue.pop();
+        auto adjacent = graph.getAdjacentEdges(closest.second);
+        for (Edge e: adjacent) {
+            if ()
+        }
+    }
 }
 
 } // namespace my_dijkstra_lib
