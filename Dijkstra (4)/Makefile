@@ -1,12 +1,8 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude -Ithird_party/stb -IC:/msys64/ucrt64/include
-GTEST_FLAGS := ...
+CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude -IC:/msys64/ucrt64/include
 
-LIB_SRCS := src/image.cpp src/parser.cpp src/bresenham.cpp src/stb_impl.cpp src/color.cpp
+LIB_SRCS := graph.cpp
 LIB_OBJS := $(LIB_SRCS:.cpp=.o)
-
-TEST_SRCS := tests/test_color.cpp tests/test_parser.cpp tests/test_image.cpp tests/test_bresenham.cpp
-TEST_OBJS := $(TEST_SRCS:.cpp=.o)
 
 .PHONY: all test clean
 
@@ -14,12 +10,6 @@ all: app
 
 app: app/main.o $(LIB_OBJS)
 	$(CXX) $^ -o $@
-
-run_tests: $(TEST_OBJS) $(LIB_OBJS)
-	$(CXX) $^ -LC:/msys64/ucrt64/lib -lgtest -lgtest_main -o $@
-
-test: run_tests
-	./run_tests
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@

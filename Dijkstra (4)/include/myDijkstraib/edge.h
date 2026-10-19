@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace my_graphs_lib
+namespace my_dijkstra_lib
 {
 
 struct Edge {
@@ -10,6 +10,6 @@ struct Edge {
     unsigned int weight;
 } 
 
-} // namespace my_graphs_lib
+} // namespace my_dijkstra_lib
 
 
