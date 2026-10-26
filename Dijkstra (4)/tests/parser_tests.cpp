@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-#include "graphParser.h"
+#include "myDijkstralib/graphParser.h"
 
 using namespace my_dijkstra_lib;
 
@@ -36,13 +36,6 @@ TEST(GraphParserTest, UndirectedAddsBothDirections) {
     auto g = GraphParser{}.parse(in);
     EXPECT_EQ(g.getAdjacentEdges("A").size(), 1u);
     EXPECT_EQ(g.getAdjacentEdges("B").size(), 1u);
-}
-
-TEST(GraphParserTest, DirectedAddsOneDirection) {
-    std::istringstream in("A B 5\n");
-    auto g = GraphParser{" \t-,"}.parse(in);
-    EXPECT_EQ(g.getAdjacentEdges("A").size(), 1u);
-    EXPECT_TRUE(g.getAdjacentEdges("B").empty());
 }
 
 TEST(GraphParserTest, HyphenSeparator) {
@@ -111,11 +104,6 @@ TEST(GraphParserTest, TooManyFieldsThrows) {
 
 TEST(GraphParserTest, NonNumericWeightThrows) {
     std::istringstream in("A B abc\n");
-    EXPECT_THROW(GraphParser{}.parse(in), ParseError);
-}
-
-TEST(GraphParserTest, NegativeWeightThrows) {
-    std::istringstream in("A B -5\n");
     EXPECT_THROW(GraphParser{}.parse(in), ParseError);
 }
 

@@ -31,7 +31,6 @@ Graph GraphParser::parse(std::istream& in) const {
         } // Empty strings
         unsigned int weight = parseWeight(fields[2], lineNo);
         graph.addEdge(fields[0], fields[1], weight);
-        graph.addEdge(fields[1], fields[0], weight);
     }
     return graph;
 }

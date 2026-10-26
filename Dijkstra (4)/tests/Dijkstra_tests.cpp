@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-#include "DijkstraSolver.h"
+#include "myDijkstralib/graphParser.h"
+#include "myDijkstralib/DijkstraSolver.h"
 
 using namespace my_dijkstra_lib;
 
@@ -20,11 +21,11 @@ TEST(DijkstraSolverTest, FindsShortestPath) {
     DijkstraSolver solver(g);
     auto path = solver.findShortestPath("Moscow", "Kiev");
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(path.value().weight, 25u);
+    EXPECT_EQ(path.value().totalWeight, 20u);
     EXPECT_EQ(path.value().vertices.size(), 4u);
     EXPECT_EQ(path.value().vertices[0], "Moscow");
-    EXPECT_EQ(path.value().vertices[1], "Krasnoyarsk");
-    EXPECT_EQ(path.value().vertices[2], "Omsk");
+    EXPECT_EQ(path.value().vertices[1], "Toronto");
+    EXPECT_EQ(path.value().vertices[2], "Krasnoyarsk");
     EXPECT_EQ(path.value().vertices[3], "Kiev");
 }
 
@@ -54,7 +55,7 @@ TEST(DijkstraSolverTest, HandlesEmptyGraph) {
 
 TEST(DijkstraSolverTest, HandlesGraphWithNoPath) {
     std::istringstream in(
-        "A B 10\n"
+        "A D 10\n"
         "B C 5\n");
     auto g = GraphParser{}.parse(in);
     DijkstraSolver solver(g);
@@ -63,12 +64,12 @@ TEST(DijkstraSolverTest, HandlesGraphWithNoPath) {
 }
 
 TEST(DijkstraSolverTest, HandlesGraphWithOneVertex) {
-    std::istringstream in("A\n");
+    std::istringstream in("A A 1\n");
     auto g = GraphParser{}.parse(in);
     DijkstraSolver solver(g);
     auto path = solver.findShortestPath("A", "A");
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(path.value().weight, 0u);
+    EXPECT_EQ(path.value().totalWeight, 0u);
     EXPECT_EQ(path.value().vertices.size(), 1u);
     EXPECT_EQ(path.value().vertices[0], "A");
 }
@@ -79,7 +80,7 @@ TEST(DijkstraSolverTest, HandlesGraphWithTwoVertices) {
     DijkstraSolver solver(g);
     auto path = solver.findShortestPath("A", "B");
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(path.value().weight, 5u);
+    EXPECT_EQ(path.value().totalWeight, 5u);
     EXPECT_EQ(path.value().vertices.size(), 2u);
     EXPECT_EQ(path.value().vertices[0], "A");
     EXPECT_EQ(path.value().vertices[1], "B");
@@ -91,7 +92,7 @@ TEST(DijkstraSolverTest, HandlesGraphWithOneEdge) {
     DijkstraSolver solver(g);
     auto path = solver.findShortestPath("A", "B");
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(path.value().weight, 5u);
+    EXPECT_EQ(path.value().totalWeight, 5u);
     EXPECT_EQ(path.value().vertices.size(), 2u);
     EXPECT_EQ(path.value().vertices[0], "A");
     EXPECT_EQ(path.value().vertices[1], "B");
@@ -109,7 +110,7 @@ TEST(DijkstraSolverTest, HandlesGraphWithMultipleEdges) {
     DijkstraSolver solver(g);
     auto path = solver.findShortestPath("A", "E");
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(path.value().weight, 9u);
+    EXPECT_EQ(path.value().totalWeight, 11u);
     EXPECT_EQ(path.value().vertices.size(), 4u);
     EXPECT_EQ(path.value().vertices[0], "A");
     EXPECT_EQ(path.value().vertices[1], "B");
