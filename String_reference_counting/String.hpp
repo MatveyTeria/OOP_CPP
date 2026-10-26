@@ -1,68 +1,102 @@
-#include <cstdint>
+#pragma once
 
-using std::size_t
+#include <cstddef>
+#include <stdexcept>
 
 class String {
-private:
-    struct StringData;
-    void detach();
 public:
     String();
     String(const char* str);
-    String(const char* str, size_t n);
-    String(size_t n, char c);
-    String(const String&; str);
-    String(const String&; str, size_t pos, size_t len = npos);
+    String(const char* str, std::size_t n);
+    String(std::size_t n, char c);
+    String(const String& str);
+    String(const String& str, std::size_t pos, std::size_t len = npos);
     virtual ~String();
 
-    size_t size();
-    size_t capacity();
-    void reserve(size_t n = 0);
-    void clear();
-    bool empty();
+    std::size_t size() const;
+    std::size_t capacity() const;
+    void   reserve(std::size_t n = 0);
+    void   clear();
+    bool   empty() const;
 
-    char&; at(size_t pos);
-    const char&; at(size_t pos) const;
+    // ---------- Доступ к символам ----------
+    char&       at(std::size_t pos);
+    const char& at(std::size_t pos) const;
 
-    char&; operator[](size_t pos);
-    const char&; operator[](size_t pos) const;
+    char&       operator[](std::size_t pos);
+    const char& operator[](std::size_t pos) const;
 
-    char&; back();
-    const char&; back() const;
+    char&       back();
+    const char& back() const;
 
-    char&; front();
-    const char&; front() const;
+    char&       front();
+    const char& front() const;
 
-    String&; operator+=(const String&; str);
-    String&; operator+=(const char* str);
-    String&; operator+=(char c);
+    // ---------- Конкатенация ----------
+    String& operator+=(const String& str);
+    String& operator+=(const char* str);
+    String& operator+=(char c);
 
-    String&; operator=(const String&; str);
-    String&; operator=(const char* str);
+    // ---------- Присваивание ----------
+    String& operator=(const String& str);
+    String& operator=(const char* str);
 
-    String&; insert(size_t pos, const String&; str);
-    String&; insert(size_t pos, const char* str);
-    String&; insert(size_t pos, size_t n, char c);
+    // ---------- Вставка ----------
+    String& insert(std::size_t pos, const String& str);
+    String& insert(std::size_t pos, const char* str);
+    String& insert(std::size_t pos, std::size_t n, char c);
 
-    String&; erase(size_t pos = 0, size_t len = npos);
+    // ---------- Удаление ----------
+    String& erase(std::size_t pos = 0, std::size_t len = npos);
 
-    String&; replace(size_t pos, size_t len, const String&; str);
-    String&; replace(size_t pos, size_t len, const char* str);
-    String&; replace(size_t pos, size_t len, size_t n, char c);
+    // ---------- Замена ----------
+    String& replace(std::size_t pos, std::size_t len, const String& str);
+    String& replace(std::size_t pos, std::size_t len, const char* str);
+    String& replace(std::size_t pos, std::size_t len, std::size_t n, char c);
 
-    void swap(String&; str);
-    const char* data();
+    // ---------- Обмен / данные ----------
+    void        swap(String& str);
+    const char* data() const;
 
-    size_t find(const String&; str, size_t pos = 0);
-    size_t find(const char* str, size_t pos = 0);
-    size_t find(char c, size_t pos = 0);
+    // ---------- Поиск ----------
+    std::size_t find(const String& str, std::size_t pos = 0) const;
+    std::size_t find(const char* str, std::size_t pos = 0) const;
+    std::size_t find(char c, std::size_t pos = 0) const;
 
-    String substr(size_t pos = 0, size_t len = npos);
+    // ---------- Подстрока / сравнение ----------
+    String substr(std::size_t pos = 0, std::size_t len = npos) const;
 
-    int compare(const String&; str);
-    int compare(const char* str);
+    int compare(const String& str) const;
+    int compare(const char* str) const;
 
-    static const size_t npos = -1;
+    // ---------- Константа ----------
+    static const std::size_t npos = static_cast<std::size_t>(-1);
 
-    size_t countRef();
+    // ---------- Для unit-тестов ----------
+    std::size_t countRef() const;
+
+private:
+    // Control block: определение скрыто в .cpp
+    struct StringData;
+    StringData* shared_ = nullptr;
+
+    // ---------- Управление control block ----------
+    // Создаёт блок с буфером ёмкости cap, копирует n символов из src
+    // и ставит '\0' в позицию n. Может бросить std::bad_alloc.
+    static StringData* acquire(const char* src, std::size_t n, std::size_t cap);
+
+    static void add_ref(StringData* p);
+    static void release(StringData* p);   // уменьшает счётчик, при 0 — освобождает
+
+    // ---------- Внутренние хелперы ----------
+    void detach();                        // COW: копирует буфер, если он разделяемый
+    void ensure_capacity(std::size_t n);       // расширяет буфер до n (не уменьшает)
+
+    // Общий бэкенд для перегрузок insert/replace/+= — чтобы не дублировать логику
+    String& append_raw(const char* src, std::size_t n);
+    String& insert_raw(std::size_t pos, const char* src, std::size_t n);
+    String& replace_raw(std::size_t pos, std::size_t len, const char* src, std::size_t n);
+
+    // Общий поиск подстроки (используется find(const String&) и find(const char*))
+    std::size_t find_raw(const char* needle, std::size_t n, std::size_t pos) const;
 };
