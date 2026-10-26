@@ -20,16 +20,50 @@ std::optional<Path> DijkstraSolver::findShortestPath(const std::string& from, co
         QueueItem, std::vector<QueueItem>,
         std::greater<>> pr_queue;
 
-    unordered_map
+    std::unordered_map<std::string, std::uint64_t> real_weights;
+
+    std::unordered_map<std::string, std::string> predecessors;
     
     pr_queue.push(QueueItem{0, from});
-    while (!pr_queue.empty()) {
-        QueueItem closest = pr_queue.pop();
-        auto adjacent = graph.getAdjacentEdges(closest.second);
-        for (Edge e: adjacent) {
-            if ()
+    real_weights[from] = 0;
+    predecessors[from] = from;
+    do {
+        QueueItem closest = pr_queue.top();
+        pr_queue.pop()
+        std::string vertex_name = closest.second;
+        std::uint64_t vertex_weight = closest.first;
+
+        if (real_weights.at(vertex_name) != vertex_weight) continue;
+
+        const auto& adjacent = graph.getAdjacentEdges(vertex_name);
+        for (const Edge& e: adjacent) {
+            if (e.to == to){
+                predecessors[e.to] = vertex_name;
+                real_weights[e.to] = vertex_weight + e.weight;
+                break;
+            }
+            if (real_weights.find(e.to) == real_weights.end() || 
+                vertex_weight + e.weight < real_weights[e.to] ) {
+                real_weights[e.to] = vertex_weight + e.weight;
+                predecessors[e.to] = vertex_name;
+                pr_queue.push(QueueItem{vertex_weight + e.weight, e.to});
+            }
         }
+    } while (!pr_queue.empty());
+
+    if (real_weights.find(to) == real_weights.end()) // Нет пути
+        return std::nullopt;
+    
+    Path result;
+    result.weight = real_weights.at(to);
+    std::string cur = to;
+    while (cur != from) {
+        result.verticies.push_back(cur);
+        cur = predecessors[cur];
     }
+    result.verticies.push_back(cur);
+
+    return result;
 }
 
 } // namespace my_dijkstra_lib
