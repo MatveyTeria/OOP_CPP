@@ -15,6 +15,10 @@ private:
 public:
     void addEdge(const std::string& from, const std::string& to, unsigned int weight) noexcept;
 
+    bool hasVertex(const std::string& vertex) const {
+        return adj_list.find(vertex) != adj_list.end();
+    }
+
     const std::vector<Edge>& getAdjacentEdges(const std::string& vertex) const {
         adj_list.at(vertex);
     }

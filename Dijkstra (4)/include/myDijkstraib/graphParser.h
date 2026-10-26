@@ -9,15 +9,21 @@
 namespace my_dijkstra_lib
 {
 
+class ParseError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
 class GraphParser {
 public:
-    Graph parseFromFile(std::istream& in, std::string separators = " \t-,");
+    Graph(std::string separators = " \t-,") : separators_(separators) {}
+    Graph parse(std::istream& in) const;
 private:
-    std::optional<std::string> nextNonEmptyLine(std::istream& in);
+    unsigned int parseWeight(const std::string& s, std::size_t lineNo) const;
 
-    std::optional<int> parseInt(const std::string& s);
+     std::vector<std::string> split(const std::string& line) const;
 
-    std::optional<Color> parseString(const std::string& s);
+    std::string separators_;
 }
 
 } // namespace my_dijkstra_lib
