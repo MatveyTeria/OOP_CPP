@@ -17,7 +17,7 @@ public:
 
 class GraphParser {
 public:
-    GraphParser(std::string separators = " \t-,") : separators_(separators) {}
+    GraphParser(std::string separators = " \t,;") : separators_(separators) {}
     Graph parse(std::istream& in) const;
 private:
     unsigned int parseWeight(const std::string& s, std::size_t lineNo) const;
