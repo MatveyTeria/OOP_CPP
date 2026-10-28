@@ -393,3 +393,45 @@ std::size_t String::find(const char* str, std::size_t pos) const {
         throw std::invalid_argument("String::find: null C-string");
     return find_raw(str, std::strlen(str), pos);
 }
+
+String String::substr(std::size_t pos, std::size_t len) const {
+    if (pos > shared_->size)
+        throw std::out_of_range("String::substr: pos out of range");
+
+    std::size_t n = (len == npos) ? (shared_->size - pos)
+                                  : std::min(len, shared_->size - pos);
+    return String(acquire(shared_->data + pos, n, n));
+}
+
+int String::compare(const String& str) const {
+    std::size_t n = std::min(shared_->size, str.shared_->size);
+    int cmp = std::memcmp(shared_->data, str.shared_->data, n);
+    if (cmp != 0)
+        return cmp;
+    if (shared_->size < str.shared_->size) return -1;
+    if (shared_->size > str.shared_->size) return  1;
+    return 0;
+}
+
+int String::compare(const char* str) const {
+    if (str == nullptr)
+        throw std::invalid_argument("String::compare: null C-string");
+    std::size_t m = std::strlen(str);
+    std::size_t n = std::min(shared_->size, m);
+    int cmp = std::memcmp(shared_->data, str, n);
+    if (cmp != 0)
+        return cmp;
+    if (shared_->size < m) return -1;
+    if (shared_->size > m) return  1;
+    return 0;
+}
+
+void String::swap(String& str) {
+    if (this == &str)
+        return;
+    std::swap(shared_, str.shared_);
+}
+
+const char* String::data() const {
+    return shared_->data;
+}

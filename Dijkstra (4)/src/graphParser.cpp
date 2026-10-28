@@ -20,7 +20,7 @@ Graph GraphParser::parse(std::istream& in) const {
     std::string line;
     while (std::getline(in, line)) {
         ++lineNo;
-        if (line.find_first_not_of(" \t\r") == std::string::npos) continue; // Skippin empty lines
+        if (line.find_first_not_of(" \t\r") == std::string::npos) continue; // Skipping empty lines
         auto fields = split(line);
         if (fields.size() != 3) {
             throw ParseError("line " + std::to_string(lineNo) +
