@@ -12,6 +12,11 @@ struct String::StringData {
     char* data           = nullptr;
 }
 
+const char& String::null_char() {
+    static const char zero = '\0';
+    return zero;
+}
+
 String::StringData* String::acquire(const char* src, std::size_t n, std::size_t cap) {
     if (cap < n) cap = n;
     StringData* p(new StringData()); // possible exception - std::bad_alloc
@@ -135,5 +140,256 @@ void String::clear() {
     shared_.data[0] = '\0';
 }
 
+char& String::at(std::size_t pos) {
+    if (pos >= shared_->size)
+        throw std::out_of_range("String::at: pos out of range");
+    detach();
+    return shared_->data[pos];
+}
 
+const char& String::at(std::size_t pos) const {
+    if (pos > shared_->size)
+        throw std::out_of_range("String::at: pos out of range");
+    if (pos == shared_->size)
+        return null_char();
+    return shared_->data[pos];
+}
 
+char& String::operator[](std::size_t pos) {
+    detach();
+    return shared_->data[pos];
+}
+const char& String::operator[](std::size_t pos) const {
+    if (pos == shared_->size)
+        return null_char();
+    return shared_->data[pos];
+}
+
+char& String::back() {
+    detach();
+    return shared_->data[shared_->size - 1];
+}
+const char& String::back() const {
+    return shared_->data[shared_->size - 1];
+}
+
+char& String::front() {
+    detach();
+    return shared_->data[0];
+}
+const char& String::front() const {
+    return shared_->data[0];
+}
+
+String& String::append_raw(const char* src, std::size_t n) {
+    if (n == 0)
+        return *this;
+    detach();
+    ensure_capacity(shared_->size + n);
+    std::memcpy(shared_->data + shared_->size, src, n);
+    shared_->size += n;
+    shared_->data[shared_->size] = '\0';
+    return *this;
+}
+
+String& String::operator+=(const String& str) {
+    if (this == &str) {
+        String tmp(*this);
+        return append_raw(tmp.data(), tmp.size());
+    }
+    return append_raw(str.data(), str.size());
+}
+
+String& String::operator+=(const char* str) {
+    if (str == nullptr)
+        throw std::invalid_argument("String::operator+=: null C-string");
+    return append_raw(str, std::strlen(str));
+}
+
+String& String::operator+=(char c) {
+    return append_raw(&c, 1);
+}
+
+String& String::operator=(const String& str) {
+    if (this == str)
+        return *this;
+    add_ref(std.shared_);
+    release(shared_);
+    shared_ = str.shared_;
+    return *this;
+}
+
+String& String::operator=(const char* str) {
+    if (str == nullptr)
+        throw std::invalid_argument("String::operator=: null C-string");
+    String tmp(str);
+    swap(tmp);
+    return *this;
+}
+
+String& String::insert_raw(std::size_t pos, const char* src, std::size_t n) {
+    if (pos > shared_->size)
+        throw std::out_of_range("String::insert: pos out of range");
+    if (n == 0)
+        return *this;
+    detach();
+    ensure_capacity(shared_->size + n);
+    char* base = shared_->data;
+    std::memmove(base + pos + n, base + pos, shared_->size - pos + 1);
+    std::memcpy(base + pos, src, n);
+
+    shared_->size += n;
+    return *this;
+}
+
+String& String::insert(std::size_t pos, const String& str) {
+    if (this == &str) {
+        String tmp(str);
+        return insert_raw(pos, tmp.data(), tmp.size());
+    }
+    return insert_raw(pos, str.data(), str.size());
+}
+
+String& String::insert(std::size_t pos, const char* str) {
+    if (str == nullptr)
+        throw std::invalid_argument("String::insert: null C-string");
+    return insert_raw(pos, str, std::strlen(str));
+}
+
+String& String::insert(std::size_t pos, std::size_t n, char c) {
+    if (n == 0)
+        return *this;
+    if (pos > shared_->size)
+        throw std::out_of_range("String::insert: pos out of range");
+
+    detach();
+    ensure_capacity(shared_->size + n);
+
+    char* base = shared_->data;
+    std::memmove(base + pos + n, base + pos, shared_->size - pos + 1);
+    std::memset(base + pos, c, n);
+
+    shared_->size += n;
+    return *this;
+}
+
+String& String::erase(std::size_t pos, std::size_t len) {
+    if (pos > shared_->size)
+        throw std::out_of_range("String::erase: pos out of range");
+
+    std::size_t n = (len == npos) ? (shared_->size - pos)
+                                  : std::min(len, shared_->size - pos);
+    if (n == 0)
+        return *this;
+
+    detach();
+
+    char* base = shared_->data;
+    std::memmove(base + pos, base + pos + n,
+                 shared_->size - pos - n + 1);
+
+    shared_->size -= n;
+    return *this;
+}
+
+String& String::replace_raw(std::size_t pos, std::size_t len,
+                            const char* src, std::size_t n) {
+    if (pos > shared_->size)
+        throw std::out_of_range("String::replace: pos out of range");
+
+    std::size_t oldLen = (len == npos) ? (shared_->size - pos)
+                                       : std::min(len, shared_->size - pos);
+
+    if (oldLen == 0 && n == 0)
+        return *this;
+
+    detach();
+
+    std::size_t newSize = shared_->size - oldLen + n;
+    ensure_capacity(newSize);
+
+    char* base = shared_->data;
+
+    if (n != oldLen) {
+        std::memmove(base + pos + n,
+                     base + pos + oldLen,
+                     shared_->size - pos - oldLen + 1);
+    }
+
+    if (n > 0)
+        std::memcpy(base + pos, src, n);
+
+    shared_->size = newSize;
+    return *this;
+}
+
+String& String::replace(std::size_t pos, std::size_t len, const String& str) {
+    if (this == &str) {
+        String tmp(str);
+        return replace_raw(pos, len, tmp.data(), tmp.size());
+    }
+    return replace_raw(pos, len, str.data(), str.size());
+}
+
+String& String::replace(std::size_t pos, std::size_t len, const char* str) {
+    if (str == nullptr)
+        throw std::invalid_argument("String::replace: null C-string");
+    return replace_raw(pos, len, str, std::strlen(str));
+}
+
+String& String::replace(std::size_t pos, std::size_t len, std::size_t n, char c) {
+    if (n == 0)
+        return erase(pos, len);
+    if (pos > shared_->size)
+        throw std::out_of_range("String::replace: pos out of range");
+
+    std::size_t oldLen = (len == npos) ? (shared_->size - pos)
+                                       : std::min(len, shared_->size - pos);
+    detach();
+    std::size_t newSize = shared_->size - oldLen + n;
+    ensure_capacity(newSize);
+
+    char* base = shared_->data;
+    if (n != oldLen) {
+        std::memmove(base + pos + n,
+                     base + pos + oldLen,
+                     shared_->size - pos - oldLen + 1);
+    }
+    std::memset(base + pos, c, n);
+    shared_->size = newSize;
+    return *this;
+}
+
+// String.cpp
+std::size_t String::find_raw(const char* needle, std::size_t n,
+                             std::size_t pos) const {
+    if (pos > shared_->size)
+        return npos;
+
+    if (n == 0)
+        return pos;
+
+    if (n > shared_->size - pos)
+        return npos;
+
+    const char* hay = shared_->data;
+    for (std::size_t i = pos; i <= shared_->size - n; ++i) {
+        if (std::memcmp(hay + i, needle, n) == 0)
+            return i;
+    }
+    return npos;
+}
+
+std::size_t String::find(char c, std::size_t pos) const {
+    if (pos >= shared_->size)
+        return npos;
+    const char* p = static_cast<const char*>(
+        std::memchr(shared_->data + pos, c, shared_->size - pos));
+    return p ? static_cast<std::size_t>(p - shared_->data) : npos;
+}
+
+std::size_t String::find(const char* str, std::size_t pos) const {
+    if (str == nullptr)
+        throw std::invalid_argument("String::find: null C-string");
+    return find_raw(str, std::strlen(str), pos);
+}
