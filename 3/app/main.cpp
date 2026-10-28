@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <exception>
 
 int main(int argc, char **argv) {

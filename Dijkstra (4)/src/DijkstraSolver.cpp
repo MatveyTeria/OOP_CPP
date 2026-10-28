@@ -32,11 +32,11 @@ std::optional<Path> DijkstraSolver::findShortestPath(const std::string& from, co
     predecessors[from] = from;
     do {
         QueueItem closest = pr_queue.top();
-        if (closest == top)
-            break;
         pr_queue.pop();
         std::string vertex_name = closest.second;
         std::uint64_t vertex_weight = closest.first;
+        if (vertex_name == to)
+            break;
 
         if (real_weights.at(vertex_name) != vertex_weight) continue;
 
@@ -54,16 +54,15 @@ std::optional<Path> DijkstraSolver::findShortestPath(const std::string& from, co
     if (real_weights.find(to) == real_weights.end())
         return std::nullopt;
     
-    std::vector<std::string> verticies;
-    verticies.push_back(to);
+    std::vector<std::string> vertices;
     std::string cur = to;
     while (cur != from) {
-        verticies.push_back(cur);
+        vertices.push_back(cur);
         cur = predecessors.at(cur);
     }
-    verticies.push_back(cur);
-    std::reverse(verticies.begin(), verticies.end());
-    return Path{std::move(verticies), real_weights.at(to)};
+    vertices.push_back(cur);
+    std::reverse(vertices.begin(), vertices.end());
+    return Path{std::move(vertices), real_weights.at(to)};
 }
 
 } // namespace my_dijkstra_lib

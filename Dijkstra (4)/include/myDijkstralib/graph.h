@@ -20,13 +20,13 @@ public:
     }
 
     const std::vector<Edge>& getAdjacentEdges(const std::string& vertex) const {
-        adj_list.at(vertex);
+        return adj_list.at(vertex);
     }
 
     bool vertexExists(const std::string& vertex) const {
         return adj_list.find(vertex) != adj_list.end();
     }
-}
+};
 
 } // namespace my_dijkstra_lib
 
