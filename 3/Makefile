@@ -8,6 +8,10 @@ LIB_OBJS := $(LIB_SRCS:.cpp=.o)
 TEST_SRCS := tests/test_color.cpp tests/test_parser.cpp tests/test_image.cpp tests/test_bresenham.cpp
 TEST_OBJS := $(TEST_SRCS:.cpp=.o)
 
+export TMPDIR := $(CURDIR)/tmp
+export TMP    := $(CURDIR)/tmp
+export TEMP   := $(CURDIR)/tmp
+
 .PHONY: all test clean
 
 all: app

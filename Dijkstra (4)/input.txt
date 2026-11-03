@@ -6,4 +6,4 @@ Novosibirsk Omsk 15
 Omsk Toronto 11
 Toronto Krasnoyarsk 2
 Krasnoyarsk Kiev 9
-Kiev Omsk 6
+Kiev Omsk -3
