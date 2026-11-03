@@ -20,13 +20,13 @@ app: main.o $(LIB_OBJS)
 	$(CXX) $^ -o $@
 
 run_tests: $(TEST_OBJS) $(LIB_OBJS)
-	$(CXX) $^ -LC:/msys64/ucrt64/lib -lgtest -lgtest_main -o $@
+	$(CXX) $^ -LC:/msys64/ucrt64/lib -lgtest -lgtest_main -o run_tests.exe
 
 test: run_tests
-	./run_tests
+	./run_tests.exe
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(LIB_OBJS) $(TEST_OBJS) main.o app run_tests
+	rm -f $(LIB_OBJS) $(TEST_OBJS) main.o app run_tests.exe

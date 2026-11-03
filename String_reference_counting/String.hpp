@@ -79,7 +79,9 @@ private:
     // Control block: определение скрыто в .cpp
     struct StringData;
     StringData* shared_ = nullptr;
-
+    
+    explicit String(StringData* data) : shared_(data) {}
+    
     // ---------- Управление control block ----------
     // Создаёт блок с буфером ёмкости cap, копирует n символов из src
     // и ставит '\0' в позицию n. Может бросить std::bad_alloc.
@@ -100,10 +102,4 @@ private:
     // Общий поиск подстроки (используется find(const String&) и find(const char*))
     std::size_t find_raw(const char* needle, std::size_t n, std::size_t pos) const;
     static const char& null_char();
-    String& append_raw(const char* src, std::size_t n);
-    String& insert_raw(std::size_t pos, const char* src, std::size_t n);
-    String& String::replace_raw(std::size_t pos, std::size_t len,
-                            const char* src, std::size_t n);
-    std::size_t find_raw(const char* needle, std::size_t n,
-                     std::size_t pos) const;
 };

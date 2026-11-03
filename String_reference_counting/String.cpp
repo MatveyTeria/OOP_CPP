@@ -10,7 +10,7 @@ struct String::StringData {
     std::size_t capacity = 0;
     std::size_t size     = 0;
     char* data           = nullptr;
-}
+};
 
 const char& String::null_char() {
     static const char zero = '\0';
@@ -21,7 +21,7 @@ String::StringData* String::acquire(const char* src, std::size_t n, std::size_t 
     if (cap < n) cap = n;
     StringData* p(new StringData()); // possible exception - std::bad_alloc
     try {
-        p.data = new char[cap + 1];
+        p->data = new char[cap + 1];
     } catch(...) {
         delete p;
         throw;
@@ -32,7 +32,7 @@ String::StringData* String::acquire(const char* src, std::size_t n, std::size_t 
     p->size     = n;
     p->capacity = cap;
     p->refCount = 1;
-    return p.release();
+    return p;
 }
 
 void String::add_ref(StringData* p) {
@@ -81,9 +81,9 @@ String::String(const char* str)
 String::String(const char* str, std::size_t n)
     : shared_(nullptr)
 {
-    if (str == nullptr)
+    if (str == nullptr && n > 0)
         throw std::invalid_argument("String: null C-string");
-    n = std::min(n, std::strlen(str))
+    
     shared_ = acquire(str, n, n);
 }
 
@@ -108,7 +108,7 @@ String::String(const String& str, std::size_t pos, std::size_t len)
     if (pos > str.size())
         throw std::out_of_range("String: pos > size");
     std::size_t n = (len == npos) ? (str.size() - pos) : 
-                                    std::min(len, str.size() - pos)
+                                    std::min(len, str.size() - pos);
     shared_ = acquire(str.data() + pos, n, n);
 }
 
@@ -136,8 +136,8 @@ void String::reserve(std::size_t n) {
 
 void String::clear() {
     detach();
-    shared_.size = 0;
-    shared_.data[0] = '\0';
+    shared_->size = 0;
+    shared_->data[0] = '\0';
 }
 
 char& String::at(std::size_t pos) {
@@ -211,9 +211,9 @@ String& String::operator+=(char c) {
 }
 
 String& String::operator=(const String& str) {
-    if (this == str)
+    if (this == &str)
         return *this;
-    add_ref(std.shared_);
+    add_ref(str.shared_);
     release(shared_);
     shared_ = str.shared_;
     return *this;
@@ -360,7 +360,6 @@ String& String::replace(std::size_t pos, std::size_t len, std::size_t n, char c)
     return *this;
 }
 
-// String.cpp
 std::size_t String::find_raw(const char* needle, std::size_t n,
                              std::size_t pos) const {
     if (pos > shared_->size)
@@ -392,6 +391,10 @@ std::size_t String::find(const char* str, std::size_t pos) const {
     if (str == nullptr)
         throw std::invalid_argument("String::find: null C-string");
     return find_raw(str, std::strlen(str), pos);
+}
+
+std::size_t String::find(const String& str, std::size_t pos) const {
+    return find_raw(str.data(), str.size(), pos);
 }
 
 String String::substr(std::size_t pos, std::size_t len) const {
@@ -435,3 +438,9 @@ void String::swap(String& str) {
 const char* String::data() const {
     return shared_->data;
 }
+
+std::size_t String::countRef() const {
+    return shared_->refCount;
+}
+
+const std::size_t String::npos;

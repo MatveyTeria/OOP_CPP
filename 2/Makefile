@@ -6,6 +6,10 @@ OBJS = $(SRCS:.cpp=.o)
 
 all: $(TARGET)
 
+export TMPDIR := $(CURDIR)/tmp
+export TMP    := $(CURDIR)/tmp
+export TEMP   := $(CURDIR)/tmp
+
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
