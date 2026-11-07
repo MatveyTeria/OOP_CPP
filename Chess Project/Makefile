@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude -IC:/msys64/ucrt64/include
+CXXFLAGS := -std=c++20 -Wall -Wextra -Iinclude -IC:/msys64/ucrt64/include
 GTEST_FLAGS := ...
 
 LIB_SRCS := src/Board.cpp

@@ -31,9 +31,15 @@ struct Move {
     Square to;
     PieceType promo = PieceType::Queen;
     MoveType type  = MoveType::Normal;
-
     constexpr bool operator==(const Move&) const = default; // For testing
 };
+
+
+static constexpr std::array<uint8_t, 64> make_empty() {
+    std::array<uint8_t, 64> a{};
+    for (auto& c : a) c = chesslib::kEmpty;
+    return a;
+}
 
 class Board {
 public:
