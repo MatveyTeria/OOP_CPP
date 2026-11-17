@@ -38,5 +38,12 @@ TEST(BoardFromFen, BlackToMove) {
 
 TEST(BoardFromFen, MoveCounter) {
     chesslib::Board b = chesslib::Board::from_fen("4k3/8/8/8/8/8/4P3/4K3 b - - 40 4");
-    EXPECT_EQ(b.halfmove_clock(), 4);
+    EXPECT_EQ(b.halfmove_clock(), 40);
+}
+
+TEST(BoardFromFen, EmptyBoard) {
+    chesslib::Board b = chesslib::Board::from_fen("8/8/8/8/8/8/8/8 w - - 40 4");
+    for (int i = 0; i < 64; i++){
+        EXPECT_EQ(b.piece_at(i), chesslib::kEmpty);
+    }
 }
