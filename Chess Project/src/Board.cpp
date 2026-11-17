@@ -32,110 +32,207 @@ namespace
 } // namespace
 
 namespace zobrist {
-    inline const std::array<std::array<uint64_t, 64>, 13> piece_square = /* [12][*] == 0 */;
-    inline const std::array<uint64_t, 8>  ep_file  = /* ... */;
-    inline constexpr uint64_t side = 0x9E3779B97F4A7C15ull;  // любое фиксированное
 
-    // castling[c] = XOR хэшей отдельных битов, входящих в c
-    inline const std::array<uint64_t, 16> castling = []{
-        std::array<uint64_t, 4> bit{ 0x..., 0x..., 0x..., 0x... };
-        std::array<uint64_t, 16> t{};
-        for (int c = 0; c < 16; ++c)
-            for (int i = 0; i < 4; ++i)
-                if (c & (1 << i)) t[c] ^= bit[i];
-        return t;
-    }();
+constexpr uint64_t splitmix64(uint64_t& state) noexcept {
+    uint64_t z = (state += 0x9E3779B97F4A7C15ull);
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+    return z ^ (z >> 31);
 }
 
-namespace chesslib
-{
+// piece_square[12] — это kEmpty; оставляем нули, чтобы XOR был no-op.
+constexpr std::array<std::array<uint64_t, 64>, 13> piece_square = [] {
+    std::array<std::array<uint64_t, 64>, 13> t{};
+    uint64_t s = 0xCAFEBABE12345678ull;
+    for (int p = 0; p < 12; ++p)
+        for (int sq = 0; sq < 64; ++sq)
+            t[p][sq] = splitmix64(s);
+    return t;
+}();
+
+constexpr std::array<uint64_t, 8> ep_file = [] {
+    std::array<uint64_t, 8> t{};
+    uint64_t s = 0xDEADBEEFDEADBEEFull;
+    for (int f = 0; f < 8; ++f) t[f] = splitmix64(s);
+    return t;
+}();
+
+constexpr uint64_t side = 0x9E3779B97F4A7C15ull;
+
+constexpr std::array<uint64_t, 16> castling = [] {
+    std::array<uint64_t, 4> bit{};
+    uint64_t s = 0x1234567890ABCDEFull;
+    for (int i = 0; i < 4; ++i) bit[i] = splitmix64(s);
+
+    std::array<uint64_t, 16> t{};
+    for (int c = 0; c < 16; ++c)
+        for (int i = 0; i < 4; ++i)
+            if (c & (1 << i)) t[c] ^= bit[i];
+    return t;
+}();
+
+} // namespace zobrist
+
+#include "chesslib/Board.h"
+#include <cassert>
+#include <stdexcept>
+
+namespace { /* piece_from_char ... без изменений */ }
+
+namespace zobrist { /* см. выше */ }
+
+namespace chesslib {
 
 Board Board::start_position() {
-    return from_fen(std::string_view("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
+    return from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
 Board Board::from_fen(std::string_view fen) {
     Board b;
     b.cells_ = make_empty();
 
-    std::array<std::string_view, 6> fields;
-    int field_num = 0;
-    int last = 0;
-    int i = 0;
-    for (char c: fen) {
+    // ---- разбиение на поля ----
+    std::array<std::string_view, 6> fields{};
+    int field_num = 0, last = 0, i = 0;
+    for (char c : fen) {
         if (c == ' ') {
-            if (i != last)
-                fields.at(field_num++) = std::string_view(fen.data() + last, i - last);
+            if (i != last) {
+                if (field_num >= 6)
+                    throw std::invalid_argument("from_fen: too many fields");
+                fields[field_num++] = std::string_view(fen.data() + last, i - last);
+            }
             last = i + 1;
-            if (field_num > 6)
-                throw std::invalid_argument("from_fen: fen string has to many fields");
         }
         i++;
     }
-    if (i != last)
-        fields.at(field_num++) = std::string_view(fen.data() + last, i - last);
-
-    if (field_num < 6) {
-        throw std::invalid_argument("from_fen: fen string has to few fields");
+    if (i != last) {
+        if (field_num >= 6)
+            throw std::invalid_argument("from_fen: too many fields");
+        fields[field_num++] = std::string_view(fen.data() + last, i - last);
     }
-    
-    std::string_view placement = fields[0];
+    if (field_num < 6)
+        throw std::invalid_argument("from_fen: too few fields");
 
-    int rank = 7;
-    int file = 0;
-    for (char c: placement) {
+    // ---- расстановка ----
+    int rank = 7, file = 0;
+    for (char c : fields[0]) {
         if (c == '/') {
-            rank--;
+            if (file != 8) throw std::invalid_argument("from_fen: bad rank length");
+            --rank;
+            if (rank < 0)  throw std::invalid_argument("from_fen: too many ranks");
             file = 0;
-        } else if ('0' <= c && c <= '9') {
-            if (c == '9')
-                throw std::invalid_argument("from_fen: bad empty spaces number");
+        } else if (c >= '1' && c <= '8') {
             file += c - '0';
+            if (file > 8) throw std::invalid_argument("from_fen: rank overflow");
         } else {
+            if (file >= 8) throw std::invalid_argument("from_fen: rank overflow");
             b.cells_[rank * 8 + file++] = piece_from_char(c);
         }
     }
+    if (rank != 0 || file != 8)
+        throw std::invalid_argument("from_fen: bad placement");
 
-    if (fields[1][0] == 'b')
-        b.side_ = Color::Black;
-    else if (fields[1][0] == 'w')
-        b.side_ = Color::White;
-    else
-        throw std::invalid_argument("from_fen: incorrect color");
-    
-    for (char c: fields[2]) {
-        switch (c)
-        {
-        case 'q':
-            b.castling_ |= 1;
-            break;
-        case 'k':
-            b.castling_ |= 1 << 1;
-            break;
-        case 'Q':
-            b.castling_ |= 1 << 2;
-            break;
-        case 'K':
-            b.castling_ |= 1 << 3;
-            break;
-        case '-':
-            break;
-        
-        default:
-            throw std::invalid_argument("from_fen: bad castling char");
+    // ---- сторона ----
+    if      (fields[1] == "w") b.side_ = Color::White;
+    else if (fields[1] == "b") b.side_ = Color::Black;
+    else throw std::invalid_argument("from_fen: bad side");
+
+    // ---- рокировки ----
+    if (fields[2] != "-") {
+        for (char c : fields[2]) {
+            switch (c) {
+                case 'q': b.castling_ |= Castle::BlackQueen; break;
+                case 'k': b.castling_ |= Castle::BlackKing;  break;
+                case 'Q': b.castling_ |= Castle::WhiteQueen; break;
+                case 'K': b.castling_ |= Castle::WhiteKing;  break;
+                default: throw std::invalid_argument("from_fen: bad castling");
+            }
         }
     }
 
-    if (fields[3][0] != '-') 
-        b.ep_file_ = fields[3][0] - 'a';
-    
-    b.halfmove_clock_ = atoi(fields[4].data());
+    // ---- en passant ----
+    if (fields[3] != "-") {
+        if (fields[3].size() != 2 ||
+            fields[3][0] < 'a' || fields[3][0] > 'h' ||
+            (fields[3][1] != '3' && fields[3][1] != '6'))
+            throw std::invalid_argument("from_fen: bad en passant");
+        b.ep_file_ = int8_t(fields[3][0] - 'a');
+    }
 
+    // ---- halfmove clock (без atoi: string_view не нуль-терминирован) ----
+    int hc = 0;
+    for (char c : fields[4]) {
+        if (c < '0' || c > '9')
+            throw std::invalid_argument("from_fen: bad halfmove clock");
+        hc = hc * 10 + (c - '0');
+        if (hc > 255) throw std::invalid_argument("from_fen: halfmove overflow");
+    }
+    b.halfmove_clock_ = uint8_t(hc);
+
+    // ---- ГЛАВНОЕ: установить zobrist, иначе инвариант нарушен ----
+    b.zobrist_ = b.recompute_zobrist();
     return b;
 }
 
 std::string Board::to_fen() const noexcept {
-    return "";
+    std::string fen;
+    fen.reserve(90);
+
+    // 1. Расстановка, от 8-й горизонтали к 1-й
+    for (int r = 7; r >= 0; --r) {
+        int empty = 0;
+        for (int f = 0; f < 8; ++f) {
+            uint8_t p = cells_[r * 8 + f];
+            if (is_empty(p)) { ++empty; continue; }
+            if (empty) { fen += char('0' + empty); empty = 0; }
+            char c;
+            switch (type_of(p)) {
+                case PieceType::Pawn:   c = 'p'; break;
+                case PieceType::Knight: c = 'n'; break;
+                case PieceType::Bishop: c = 'b'; break;
+                case PieceType::Rook:   c = 'r'; break;
+                case PieceType::Queen:  c = 'q'; break;
+                case PieceType::King:   c = 'k'; break;
+            }
+            if (color_of(p) == Color::White) c = char(c - 'a' + 'A');
+            fen += c;
+        }
+        if (empty) fen += char('0' + empty);
+        if (r > 0) fen += '/';
+    }
+
+    // 2. Сторона
+    fen += ' ';
+    fen += (side_ == Color::White) ? 'w' : 'b';
+
+    // 3. Рокировки
+    fen += ' ';
+    if (castling_ == 0) {
+        fen += '-';
+    } else {
+        if (castling_ & Castle::WhiteKing)  fen += 'K';
+        if (castling_ & Castle::WhiteQueen) fen += 'Q';
+        if (castling_ & Castle::BlackKing)  fen += 'k';
+        if (castling_ & Castle::BlackQueen) fen += 'q';
+    }
+
+    // 4. En passant.
+    fen += ' ';
+    if (ep_file_ == -1) {
+        fen += '-';
+    } else {
+        const int tr = (side_ == Color::White) ? 5 : 2;
+        fen += char('a' + ep_file_);
+        fen += char('1' + tr);
+    }
+
+    // 5. Halfmove clock
+    fen += ' ';
+    fen += std::to_string(static_cast<unsigned>(halfmove_clock_));
+
+    // 6. Fullmove number — не храним, выводим 1
+    fen += " 1";
+    return fen;
 }
 
 Board Board::make_move(Move m) const noexcept {
