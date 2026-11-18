@@ -62,8 +62,14 @@ GameResult Game::run() {
         std::vector<Action> actions;
         actions.reserve(robots_.size());
         for (std::size_t i = 0; i < robots_.size(); ++i) {
-            const GameState state{board_, robots_, static_cast<int>(i),
-                                  turn, cfg_.max_turns};
+            const GameState state{
+                board_,
+                robots_,
+                static_cast<int>(i),
+                turn,
+                cfg_.max_turns,
+                rng_()
+            };
             actions.push_back(strategies_[i]->chooseAction(state));
         }
 
@@ -105,4 +111,24 @@ void Game::applyActions(const std::vector<Action>& actions, int turn) {
             robots_[i].collectCoin(turn);
         }
     }
+}
+
+GameResult Game::buildResult() const {
+    GameResult result;
+
+    result.players.reserve(robots_.size());
+
+    for (const auto& robot : robots_) {
+        RobotResult player;
+
+        player.name = robot.name();
+        player.score = robot.score();
+        player.last_coin_turn = robot.lastCoinTurn();
+        player.distance = robot.distanceTraveled();
+        player.index = robot.index();
+
+        result.players.push_back(player);
+    }
+
+    return result;
 }

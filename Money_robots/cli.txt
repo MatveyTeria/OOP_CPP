@@ -1,0 +1,409 @@
+// CliParser.hpp
+#pragma once
+#include <iosfwd>
+#include "AppConfig.hpp"
+#include "StrategyRegistry.hpp"
+
+class CliParser {
+public:
+    // Парсит argv[1..argc-1]. Бросает std::invalid_argument при любой ошибке.
+    // registry используется для валидации имён стратегий.
+    [[nodiscard]] AppConfig parse(int argc, char** argv,
+                                  const StrategyRegistry& registry) const;
+
+    // Печатает usage-строку. static — чтобы App мог вызвать без экземпляра.
+    static void printUsage(std::ostream& os);
+};
+
+// CliParser.cpp
+#include "CliParser.hpp"
+
+#include <array>
+#include <cctype>
+#include <charconv>
+#include <optional>
+#include <ostream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+
+namespace {
+
+// ── Утилиты ──────────────────────────────────────────────────────────────
+
+std::string_view trim(std::string_view s) noexcept {
+    // std::isspace ожидает unsigned char, приведённый к int.
+    // Передача отрицательного char (например, кириллицы) — UB.
+    auto is_sp = [](char ch) {
+        return std::isspace(static_cast<unsigned char>(ch)) != 0;
+    };
+    while (!s.empty() && is_sp(s.front())) s.remove_prefix(1);
+    while (!s.empty() && is_sp(s.back()))  s.remove_suffix(1);
+    return s;
+}
+
+struct Arg {
+    std::string_view key;
+    std::optional<std::string_view> value;   // nullopt для формы `--key`
+};
+
+// `--mode=fast` → {mode, "fast"}; `--mode` → {mode, nullopt}; `-x` → throw.
+Arg splitArg(std::string_view s) {
+    if (s.size() < 3 || s[0] != '-' || s[1] != '-') {
+        throw std::invalid_argument(
+            "Expected --key[=value], got: '" + std::string(s) + "'");
+    }
+    const auto body = s.substr(2);
+    const auto eq = body.find('=');
+    if (eq == std::string_view::npos) return Arg{body, std::nullopt};
+    return Arg{body.substr(0, eq), body.substr(eq + 1)};
+}
+
+// std::from_chars — локале-независимый, не бросает, парсит строго.
+// std::stoi бы принял "42abc" → 42; здесь — ошибка.
+int parseInt(std::string_view s, std::string_view name) {
+    int out = 0;
+    const auto* begin = s.data();
+    const auto* end   = s.data() + s.size();
+    const auto [ptr, ec] = std::from_chars(begin, end, out);
+    if (ec != std::errc{} || ptr != end) {
+        throw std::invalid_argument(
+            "Invalid integer for --" + std::string(name) +
+            ": '" + std::string(s) + "'");
+    }
+    return out;
+}
+
+RunMode parseMode(std::string_view s) {
+    if (s == "detailed")   return RunMode::Detailed;
+    if (s == "fast")       return RunMode::Fast;
+    if (s == "tournament") return RunMode::Tournament;
+    throw std::invalid_argument(
+        "Unknown --mode: '" + std::string(s) +
+        "' (expected detailed|fast|tournament)");
+}
+
+std::vector<std::string> parseStrategyList(std::string_view s,
+                                           const StrategyRegistry& reg) {
+    s = trim(s);
+    if (s.empty()) throw std::invalid_argument("--strategies must not be empty");
+
+    std::vector<std::string> result;
+    std::size_t start = 0;
+    while (start <= s.size()) {
+        const auto comma = s.find(',', start);
+        const auto end   = (comma == std::string_view::npos) ? s.size() : comma;
+        const auto token = trim(s.substr(start, end - start));
+        if (token.empty()) {
+            throw std::invalid_argument(
+                "Empty strategy name in --strategies");
+        }
+        const std::string name(token);
+        if (!reg.contains(name)) {
+            throw std::invalid_argument(
+                "Unknown strategy: '" + name + "'");
+        }
+        result.push_back(name);
+        if (comma == std::string_view::npos) break;
+        start = end + 1;
+    }
+    return result;
+}
+
+std::vector<std::string> defaultStrategiesFor(RunMode mode,
+                                              const StrategyRegistry& reg) {
+    switch (mode) {
+        case RunMode::Fast:
+            return {"random", "nearest", "greedy", "sweep"};
+        case RunMode::Detailed:
+            return {"nearest"};
+        case RunMode::Tournament:
+            return reg.names();   // все зарегистрированные
+    }
+    return {};
+}
+
+void validateCount(std::size_t n, RunMode mode) {
+    if (n == 0) {
+        throw std::invalid_argument("At least one strategy required");
+    }
+    if (mode == RunMode::Tournament && n < 2) {
+        throw std::invalid_argument(
+            "Tournament requires at least 2 strategies");
+    }
+}
+
+} // namespace
+
+// ── Публичный API ────────────────────────────────────────────────────────
+
+AppConfig CliParser::parse(int argc, char** argv,
+                          const StrategyRegistry& registry) const {
+    std::optional<RunMode>                         mode;
+    std::optional<std::vector<std::string>>        strategies;
+    std::optional<int>                             rows, cols, coins, turns, games;
+    std::optional<std::uint32_t>                   seed;
+    bool                                           help_requested = false;
+
+    // Цикл по аргументам, начиная с argv[1] (argv[0] — имя программы).
+    for (int i = 1; i < argc; ++i) {
+        const Arg arg = splitArg(argv[i]);
+
+        // takeValue достаёт значение: из `=value` либо из следующего argv.
+        // Захват `i` по ссылке — иначе форма `--key value` не сдвинет цикл.
+        auto takeValue = [&](std::string_view name) -> std::string_view {
+            if (arg.value) return *arg.value;
+            if (i + 1 >= argc) {
+                throw std::invalid_argument(
+                    "Missing value for --" + std::string(name));
+            }
+            return argv[++i];
+        };
+
+        if (arg.key == "help" || arg.key == "h") {
+            help_requested = true;
+            continue;
+        }
+        if (arg.key == "mode") {
+            mode = parseMode(takeValue(arg.key));
+        } else if (arg.key == "strategies") {
+            strategies = parseStrategyList(takeValue(arg.key), registry);
+        } else if (arg.key == "rows") {
+            rows = parseInt(takeValue(arg.key), arg.key);
+        } else if (arg.key == "cols") {
+            cols = parseInt(takeValue(arg.key), arg.key);
+        } else if (arg.key == "coins") {
+            coins = parseInt(takeValue(arg.key), arg.key);
+        } else if (arg.key == "turns") {
+            turns = parseInt(takeValue(arg.key), arg.key);
+        } else if (arg.key == "games") {
+            games = parseInt(takeValue(arg.key), arg.key);
+        } else if (arg.key == "seed") {
+            const int v = parseInt(takeValue(arg.key), arg.key);
+            if (v < 0) {
+                throw std::invalid_argument("--seed must be >= 0");
+            }
+            seed = static_cast<std::uint32_t>(v);
+        } else {
+            throw std::invalid_argument(
+                "Unknown argument: --" + std::string(arg.key));
+        }
+    }
+
+    if (help_requested) {
+        AppConfig cfg;
+        cfg.help_requested = true;
+        return cfg;
+    }
+
+    // Заполняем поля с учётом дефолтов.
+    AppConfig cfg;
+    cfg.mode        = mode.value_or(RunMode::Fast);
+    cfg.rows        = rows.value_or(10);
+    cfg.cols        = cols.value_or(10);
+    cfg.num_coins   = coins.value_or(20);
+    cfg.max_turns   = turns.value_or(50);
+    cfg.games       = games.value_or(1);
+    cfg.seed        = seed.value_or(0);
+    cfg.strategies  = strategies.value_or(
+        defaultStrategiesFor(cfg.mode, registry));
+
+    // Финальная валидация — только то, что нельзя проверить по отдельности.
+    if (cfg.rows <= 0 || cfg.cols <= 0) {
+        throw std::invalid_argument("--rows and --cols must be positive");
+    }
+    if (cfg.num_coins < 0) {
+        throw std::invalid_argument("--coins must be non-negative");
+    }
+    if (cfg.num_coins > cfg.rows * cfg.cols) {
+        throw std::invalid_argument(
+            "--coins (" + std::to_string(cfg.num_coins) +
+            ") exceeds board size (" +
+            std::to_string(cfg.rows * cfg.cols) + ")");
+    }
+    if (cfg.max_turns <= 0) {
+        throw std::invalid_argument("--turns must be positive");
+    }
+    if (cfg.games <= 0) {
+        throw std::invalid_argument("--games must be positive");
+    }
+    validateCount(cfg.strategies.size(), cfg.mode);
+    return cfg;
+}
+
+void CliParser::printUsage(std::ostream& os) {
+    os <<
+        "Coin-Collecting Robots\n"
+        "Usage: coins [options]\n"
+        "\n"
+        "Options:\n"
+        "  --mode=MODE          detailed | fast | tournament  (default: fast)\n"
+        "  --strategies=LIST    comma-separated strategy names\n"
+        "  --rows=N             board rows          (default: 10)\n"
+        "  --cols=N             board columns       (default: 10)\n"
+        "  --coins=N            coins on board      (default: 20)\n"
+        "  --turns=N            max turns           (default: 50)\n"
+        "  --games=N            repetitions per pairing (tournament only)\n"
+        "  --seed=N             0 = random, otherwise fixed (default: 0)\n"
+        "  --help, -h           print this help\n";
+}
+
+// AppConfig.hpp
+#pragma once
+#include <cstdint>
+#include <string>
+#include <vector>
+
+enum class RunMode { Detailed, Fast, Tournament };
+
+struct AppConfig {
+    bool help_requested = false;
+    RunMode mode = RunMode::Fast;
+    std::vector<std::string> strategies;
+    int rows = 10;
+    int cols = 10;
+    int num_coins = 20;
+    int max_turns = 50;
+    int games = 1;
+    std::uint32_t seed = 0;
+};
+
+// App.hpp
+#pragma once
+#include <iosfwd>
+#include <memory>
+#include <iostream>
+#include "AppConfig.hpp"
+#include "StrategyRegistry.hpp"
+#include "IGameObserver.hpp"
+
+class App {
+public:
+    // Внедряем потоки — это делает App тестируемым без подмены cin/cout.
+    // По умолчанию — std::cin/std::cout/std::cerr.
+    explicit App(std::istream& in  = std::cin,
+                 std::ostream& out = std::cout,
+                 std::ostream& err = std::cerr);
+
+    // Возвращает код выхода: 0 — успех, 1 — runtime error, 2 — bad usage.
+    [[nodiscard]] int run(int argc, char** argv);
+
+private:
+    int runDetailed(const AppConfig& cfg, const StrategyRegistry& reg);
+    int runFast(const AppConfig& cfg, const StrategyRegistry& reg);
+    int runTournament(const AppConfig& cfg, const StrategyRegistry& reg);
+
+    std::istream& in_;
+    std::ostream& out_;
+    std::ostream& err_;
+};
+
+// App.cpp
+#include "App.hpp"
+
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <vector>
+
+#include "CliParser.hpp"
+#include "ConsoleBoardRenderer.hpp"
+#include "DetailedObserver.hpp"
+#include "FastObserver.hpp"
+#include "Tournament.hpp"
+#include "Game.hpp"
+
+App::App(std::istream& in, std::ostream& out, std::ostream& err)
+    : in_(in), out_(out), err_(err) {}
+
+int App::run(int argc, char** argv) {
+    // Каждый запуск — свежий реестр. Это дешево (6 лямбд),
+    // но защищает от «глобального состояния» между вызовами run().
+    const StrategyRegistry registry = StrategyRegistry::createDefault();
+
+    AppConfig cfg;
+    try {
+        CliParser parser;
+        cfg = parser.parse(argc, argv, registry);
+    } catch (const std::invalid_argument& e) {
+        err_ << "Error: " << e.what() << "\n\n";
+        CliParser::printUsage(err_);
+        return 2;
+    }
+
+    if (cfg.help_requested) {
+        CliParser::printUsage(out_);
+        return 0;
+    }
+
+    try {
+        switch (cfg.mode) {
+            case RunMode::Detailed:   return runDetailed(cfg, registry);
+            case RunMode::Fast:       return runFast(cfg, registry);
+            case RunMode::Tournament: return runTournament(cfg, registry);
+        }
+    } catch (const std::exception& e) {
+        err_ << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
+    return 0;   // недостижимо, но компилятор доволен (нет return после switch)
+}
+
+// ── fast: одна игра, N ходов, M монет ────────────────────────────────────
+
+int App::runFast(const AppConfig& cfg, const StrategyRegistry& reg) {
+    std::vector<std::unique_ptr<IRobotStrategy>> strategies;
+    strategies.reserve(cfg.strategies.size());
+    for (const auto& name : cfg.strategies) {
+        strategies.push_back(reg.create(name));
+    }
+
+    GameConfig gcfg{cfg.rows, cfg.cols, cfg.num_coins, cfg.max_turns, cfg.seed};
+
+    auto observer = std::make_shared<FastObserver>(out_);
+    Game game(gcfg, std::move(strategies), observer);
+    game.run();
+    return 0;
+}
+
+// ── detailed: та же игра, но с пошаговым выводом и ожиданием Enter ────────
+
+int App::runDetailed(const AppConfig& cfg, const StrategyRegistry& reg) {
+    std::vector<std::unique_ptr<IRobotStrategy>> strategies;
+    for (const auto& name : cfg.strategies) {
+        strategies.push_back(reg.create(name));
+    }
+
+    GameConfig gcfg{cfg.rows, cfg.cols, cfg.num_coins, cfg.max_turns, cfg.seed};
+
+    auto observer = std::make_shared<DetailedObserver>(in_, out_);
+    Game game(gcfg, std::move(strategies), observer);
+    game.run();
+    return 0;
+}
+
+// ── tournament: серия парных игр ─────────────────────────────────────────
+
+int App::runTournament(const AppConfig& cfg, const StrategyRegistry& reg) {
+    TournamentConfig tcfg;
+    tcfg.strategy_names = cfg.strategies;
+    tcfg.base_game_config = GameConfig{
+        cfg.rows, cfg.cols, cfg.num_coins, cfg.max_turns, cfg.seed};
+    tcfg.repetitions_per_pairing = cfg.games;
+
+    Tournament t(tcfg, reg);
+    const TournamentResult result = t.run();
+
+    out_ << "\n=== Tournament results ===\n";
+    out_ << "  #  strategy       games   wins   total_score\n";
+    int rank = 1;
+    for (const auto& s : result.stats) {
+        out_ << "  " << rank++ << "  "
+             << s.name;
+        for (std::size_t i = s.name.size(); i < 14; ++i) out_ << ' ';
+        out_ << s.games_played << "      "
+             << s.wins << "      "
+             << s.total_score << '\n';
+    }
+    return 0;
+}

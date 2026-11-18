@@ -10,6 +10,10 @@ GTEST_LIBS := -lgtest_main -lgtest -pthread
 
 # ── Library sources ───────────────────────────────────────────────────────
 LIB_SRCS := \
+	src/core/Action.cpp \
+	src/core/Position.cpp \
+	src/core/GameConfig.cpp \
+	src/io/FastObserver.cpp \
     src/core/Board.cpp \
     src/core/Game.cpp \
     src/core/GameResult.cpp \
@@ -77,6 +81,5 @@ clean:
 	      $(TEST_OBJS) $(TEST_DEPS) \
 	      $(APP_OBJS)  $(APP_DEPS)
 	rm -f coin_robots run_tests
-	rm -rf tmp
 
 -include $(LIB_DEPS) $(TEST_DEPS) $(APP_DEPS)

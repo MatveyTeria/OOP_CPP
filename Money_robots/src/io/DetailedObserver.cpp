@@ -53,3 +53,34 @@ void DetailedObserver::onTurnEnd(int,
     out_.flush();   // важно: пользователь должен увидеть «Press Enter» до get()
     in_.get();      // один символ; EOF безопасен (вернёт EOF, продолжим)
 }
+
+void DetailedObserver::onGameEnd(const GameResult& result) {
+    out_ << "\n=== Final results ===\n";
+
+    const auto ranking = result.ranking();
+
+    int place = 1;
+
+    for (int idx : ranking) {
+        const auto& p = result.players[idx];
+
+        out_ << place++ << ". "
+             << p.name
+             << " | score: " << p.score
+             << " | last coin turn: " << p.last_coin_turn
+             << " | distance: " << p.distance
+             << '\n';
+    }
+
+    out_ << "\nWinners: ";
+
+    const auto winners = result.winners();
+
+    for (std::size_t i = 0; i < winners.size(); ++i) {
+        if (i > 0) out_ << ", ";
+
+        out_ << result.players[winners[i]].name;
+    }
+
+    out_ << '\n';
+}

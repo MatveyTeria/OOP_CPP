@@ -12,4 +12,4 @@ public:
 
     // Печатает usage-строку. static — чтобы App мог вызвать без экземпляра.
     static void printUsage(std::ostream& os);
-};
+}; 

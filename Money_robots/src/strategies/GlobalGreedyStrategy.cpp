@@ -50,8 +50,8 @@ Action GlobalGreedyStrategy::chooseAction(const GameState& state) {
         const int da = cur.manhattanTo(a);
         const int db = cur.manhattanTo(b);
         if (da != db) return da < db;
-        const int ca = clusterSizeAround(sorted, a, 2);
-        const int cb = clusterSizeAround(sorted, b, 2);
+        const int ca = clusterSizeAround(coins, a, 2);
+        const int cb = clusterSizeAround(coins, b, 2);
         if (ca != cb) return ca > cb;
         if (a.row != b.row) return a.row < b.row;
         return a.col < b.col;
