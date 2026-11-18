@@ -18,8 +18,8 @@ LIB_SRCS := \
     src/core/Game.cpp \
     src/core/GameResult.cpp \
     src/core/Robot.cpp \
-    src/strategies/IdleStrategy.cpp \
-    src/strategies/RandomStrategy.cpp \
+	src/strategies/IdleStrategy.cpp \
+	src/strategies/RandomStrategy.cpp \
     src/strategies/NearestCoinStrategy.cpp \
     src/strategies/GreedyDistanceStrategy.cpp \
     src/strategies/SweepStrategy.cpp \

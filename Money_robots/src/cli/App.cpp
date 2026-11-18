@@ -45,7 +45,7 @@ int App::run(int argc, char** argv) {
         err_ << "Runtime error: " << e.what() << '\n';
         return 1;
     }
-    return 0;   // недостижимо, но компилятор доволен (нет return после switch)
+    return 0;
 }
 
 // ── fast: одна игра, N ходов, M монет ────────────────────────────────────
