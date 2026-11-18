@@ -20,6 +20,8 @@ public:
     [[nodiscard]] std::vector<Position> coinPositions() const;
 
 private:
+    [[nodiscard]] std::size_t indexOf(Position p) const;
+
     int rows_;
     int cols_;
     std::vector<std::uint8_t> coins_; // flat, row*cols+col

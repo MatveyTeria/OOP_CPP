@@ -1,28 +1,25 @@
-#pragma once
-#include <string>
-#include "Position.hpp"
+#include "Robot.hpp"
 
-class Robot {
-public:
-    Robot(std::string name, int index, Position start);
+#include <utility>
 
-    [[nodiscard]] const std::string& name() const noexcept { return name_; }
-    [[nodiscard]] int index() const noexcept { return index_; }
-    [[nodiscard]] Position position() const noexcept { return pos_; }
-    [[nodiscard]] int score() const noexcept { return score_; }
-    [[nodiscard]] int distanceTraveled() const noexcept { return distance_; }
-    // Ход (0-based), на котором робот взял последнюю монету, или -1
-    [[nodiscard]] int lastCoinTurn() const noexcept { return last_coin_turn_; }
+Robot::Robot(std::string name, int index, Position start)
+    : name_(std::move(name)), index_(index), pos_(start)
+{}
 
-    // Мутаторы — вызываются только Game.
-    void moveTo(Position new_pos) noexcept;   // +1 к distance, если реально сдвинулся
-    void collectCoin(int turn) noexcept;      // score++, last_coin_turn_ = turn
+void Robot::moveTo(Position new_pos) noexcept {
+    // distanceTraveled — суммарное манхэттенское перемещение.
+    // Если робот «пытался выйти за край», Game оставил его на месте
+    // (см. applyActions), и сюда придёт pos == new_pos → +0.
+    // Если реально сдвинулся — +1. Логика «+ что» живёт здесь,
+    // а не в Game: это свойство робота, не движка.
+    distance_ += pos_.manhattanTo(new_pos);
+    pos_ = new_pos;
+}
 
-private:
-    std::string name_;
-    int index_;
-    Position pos_;
-    int score_ = 0;
-    int distance_ = 0;
-    int last_coin_turn_ = -1;
-};
+void Robot::collectCoin(int turn) noexcept {
+    ++score_;
+    // Игровое правило из задания: при равенстве очков выигрывает тот,
+    // кто забрал последнюю монету РАНЬШЕ. Храним ход последнего взятия;
+    // при сравнении в GameResult::ranking() -1 трактуем как «никогда».
+    last_coin_turn_ = turn;
+}

@@ -1,28 +1,36 @@
 #pragma once
-#include <string>
-#include "Position.hpp"
+#include <cstdint>
+#include <random>
 
-class Robot {
+// Обёртка над std::mt19937. Решает одну задачу: превратить
+// «seed как его задал пользователь» в «готовый движок».
+//
+// НЕ потокобезопасен: у каждого потока должен быть свой Rng.
+// (std::mt19937 — как std::rand, но с явным состоянием.)
+class Rng {
 public:
-    Robot(std::string name, int index, Position start);
+    // seed == 0 → взять энтропию из std::random_device.
+    // Иначе — детерминированный запуск.
+    explicit Rng(std::uint32_t seed = 0)
+        : engine_(resolveSeed(seed)) {}
 
-    [[nodiscard]] const std::string& name() const noexcept { return name_; }
-    [[nodiscard]] int index() const noexcept { return index_; }
-    [[nodiscard]] Position position() const noexcept { return pos_; }
-    [[nodiscard]] int score() const noexcept { return score_; }
-    [[nodiscard]] int distanceTraveled() const noexcept { return distance_; }
-    // Ход (0-based), на котором робот взял последнюю монету, или -1
-    [[nodiscard]] int lastCoinTurn() const noexcept { return last_coin_turn_; }
+    // Следующее 32-битное значение. Для выбора из N вариантов
+    // % N даёт лёгкое смещение, но для игр это несущественно.
+    [[nodiscard]] std::uint32_t next() noexcept {
+        return static_cast<std::uint32_t>(engine_());
+    }
 
-    // Мутаторы — вызываются только Game.
-    void moveTo(Position new_pos) noexcept;   // +1 к distance, если реально сдвинулся
-    void collectCoin(int turn) noexcept;      // score++, last_coin_turn_ = turn
+    // Доступ к движку — для std::shuffle, std::uniform_int_distribution
+    // и всего, что принимает UniformRandomBitGenerator.
+    [[nodiscard]] std::mt19937& engine() noexcept { return engine_; }
+    [[nodiscard]] const std::mt19937& engine() const noexcept { return engine_; }
 
 private:
-    std::string name_;
-    int index_;
-    Position pos_;
-    int score_ = 0;
-    int distance_ = 0;
-    int last_coin_turn_ = -1;
+    static std::uint32_t resolveSeed(std::uint32_t requested) {
+        if (requested != 0) return requested;
+        std::random_device rd;
+        return static_cast<std::uint32_t>(rd());
+    }
+
+    std::mt19937 engine_;
 };
