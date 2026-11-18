@@ -1,32 +1,82 @@
-CXX      := g++
-CXXFLAGS := -std=c++20 -Wall -Wextra -Iinclude -IC:/msys64/ucrt64/include
-GTEST_FLAGS := ...
+# ── Toolchain ─────────────────────────────────────────────────────────────
+CXX        := g++
+CXXFLAGS   := -std=c++20 -Wall -Wextra -Wpedantic -g -O2 \
+              -Isrc -Isrc/core -Isrc/strategies -Isrc/tournament \
+              -Isrc/io -Isrc/cli -Iinclude \
+              -IC:/msys64/ucrt64/include \
+              -MMD -MP
+LDFLAGS    := -LC:/msys64/ucrt64/lib
+GTEST_LIBS := -lgtest_main -lgtest -pthread
 
-LIB_SRCS := $(wildcard *.cpp)
+# ── Library sources ───────────────────────────────────────────────────────
+LIB_SRCS := \
+    src/core/Board.cpp \
+    src/core/Game.cpp \
+    src/core/GameResult.cpp \
+    src/core/Robot.cpp \
+    src/strategies/IdleStrategy.cpp \
+    src/strategies/RandomStrategy.cpp \
+    src/strategies/NearestCoinStrategy.cpp \
+    src/strategies/GreedyDistanceStrategy.cpp \
+    src/strategies/SweepStrategy.cpp \
+    src/strategies/GlobalGreedyStrategy.cpp \
+    src/strategies/StrategyRegistry.cpp \
+    src/tournament/Tournament.cpp \
+    src/io/ConsoleBoardRenderer.cpp \
+    src/io/DetailedObserver.cpp \
+    src/cli/CliParser.cpp \
+    src/cli/App.cpp
+
 LIB_OBJS := $(LIB_SRCS:.cpp=.o)
+LIB_DEPS := $(LIB_OBJS:.o=.d)
 
-TEST_SRCS := tests/BoardTests.cpp
+# ── Test sources ──────────────────────────────────────────────────────────
+TEST_SRCS := \
+    tests/test_position.cpp \
+    tests/test_board.cpp \
+    tests/test_robot.cpp \
+    tests/test_strategies.cpp \
+    tests/test_registry.cpp \
+    tests/test_game.cpp \
+    tests/test_tournament.cpp \
+    tests/test_cli.cpp
+
 TEST_OBJS := $(TEST_SRCS:.cpp=.o)
+TEST_DEPS := $(TEST_OBJS:.o=.d)
 
+# ── Application entry point ───────────────────────────────────────────────
+APP_SRCS := src/main.cpp
+APP_OBJS := $(APP_SRCS:.cpp=.o)
+APP_DEPS := $(APP_OBJS:.o=.d)
+
+# ── Environment for MSYS2/gtest ───────────────────────────────────────────
 export TMPDIR := $(CURDIR)/tmp
 export TMP    := $(CURDIR)/tmp
 export TEMP   := $(CURDIR)/tmp
 
-.PHONY: all test clean
+# ── Targets ───────────────────────────────────────────────────────────────
+.PHONY: all test clean run_tests
 
-all: app
+all: coin_robots
 
-app: app/main.o $(LIB_OBJS)
-	$(CXX) $^ -o $@
+coin_robots: $(APP_OBJS) $(LIB_OBJS)
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 run_tests: $(TEST_OBJS) $(LIB_OBJS)
-	$(CXX) $^ -LC:/msys64/ucrt64/lib -lgtest -lgtest_main -o $@
+	$(CXX) $^ $(LDFLAGS) $(GTEST_LIBS) -o $@
 
 test: run_tests
 	./run_tests
 
 %.o: %.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(LIB_OBJS) $(TEST_OBJS) app/main.o app run_tests
+	rm -f $(LIB_OBJS) $(LIB_DEPS) \
+	      $(TEST_OBJS) $(TEST_DEPS) \
+	      $(APP_OBJS)  $(APP_DEPS)
+	rm -f coin_robots run_tests
+	rm -rf tmp
+
+-include $(LIB_DEPS) $(TEST_DEPS) $(APP_DEPS)

@@ -1,20 +1,22 @@
 #pragma once
+#include <cstdint>
 #include <memory>
+#include <random>
 #include <vector>
+
 #include "GameConfig.hpp"
 #include "GameResult.hpp"
 #include "IGameObserver.hpp"
 #include "IRobotStrategy.hpp"
+#include "Board.hpp"
+#include "Robot.hpp"
 
 class Game {
 public:
-    // Каждая стратегия соответствует роботу по индексу.
-    // strategies непустой (проверяется validate).
     Game(GameConfig cfg,
          std::vector<std::unique_ptr<IRobotStrategy>> strategies,
          std::shared_ptr<IGameObserver> observer = nullptr);
 
-    // Запускает партию до конца. Повторный вызов — UB; лучше один раз.
     [[nodiscard]] GameResult run();
 
 private:
